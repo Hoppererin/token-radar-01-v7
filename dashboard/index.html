@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Radar — pre-token protocols ranked by implied value</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <h1>Token Radar <span>v7</span></h1>
+    <p class="sub">Pre-token protocols, ranked by implied value — what a token would be worth if the protocol&rsquo;s record stayed as it is, and how to farm it first.</p>
+    <p class="meta" id="meta-line">Snapshot 2026-11-14 &middot; model fit at runtime from the snapshot&rsquo;s own 128 priced comps &middot; implied values are this entry&rsquo;s claim, not a promise</p>
+    <nav class="tabs">
+      <button id="tab-board" type="button">Board</button>
+      <button id="tab-method" type="button">Method &amp; validation</button>
+    </nav>
+  </header>
+
+  <section class="kpi" id="kpi" aria-label="Key numbers"></section>
+  <section class="checks" id="checks" aria-label="Self-checks"></section>
+  <div class="ledgerbar" id="ledgerbar" aria-label="Ledger"></div>
+
+  <main id="view"></main>
+
+  <section id="method-view" class="method" hidden>
+    <h2>Method &mdash; how this radar is validated</h2>
+    <p>Every value term in the model was tested keep-vs-drop on <b>four held-out ways</b>: two independent blind tests (seed-999 and seed-42, 17 protocols each), plus 5-fold cross-validation &times; 5 seeds, plus walk-forward (66 oldest protocols train, 29 newest test). The metric is median absolute log error of ln(market cap); smaller is better. Delta = drop &minus; keep: positive means dropping the term made things worse, so the term earns its keep.</p>
+
+    <h3 id="ablation">Ablation — keep vs drop, per term</h3>
+    <table class="data" id="ablation-table">
+      <thead><tr><th>Term</th><th class="num">Blind A</th><th class="num">Blind B</th><th class="num">CV</th><th class="num">Walk-fwd</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr class="keep"><td>growth</td><td class="num">&minus;0.0006</td><td class="num">&minus;0.0336</td><td class="num">+0.0006</td><td class="num">+0.0300</td><td>KEEP &mdash; walk-forward worsens +0.03 without it; the two blinds differ only slightly (n=17, noisy)</td></tr>
+        <tr class="keep"><td>log_age</td><td class="num">+0.0190</td><td class="num">+0.0161</td><td class="num">+0.0058</td><td class="num">+0.1009</td><td>KEEP &mdash; dropping it worsens all four tests; walk-forward +0.10</td></tr>
+        <tr class="keep"><td>log_nchains</td><td class="num">&minus;0.0384</td><td class="num">+0.0191</td><td class="num">&minus;0.0025</td><td class="num">+0.0042</td><td>KEEP &mdash; neutral; the two blinds disagree, CV and walk-forward are practically unchanged</td></tr>
+        <tr class="keep"><td>chain flags (8)</td><td class="num">+0.0334</td><td class="num">+0.0138</td><td class="num">+0.0156</td><td class="num">+0.0500</td><td>KEEP &mdash; dropping them worsens all four tests</td></tr>
+        <tr class="keep"><td>group dummies (ridge)</td><td class="num">&minus;0.0196</td><td class="num">&minus;0.0171</td><td class="num">+0.0157</td><td class="num">+0.0284</td><td>KEEP &mdash; the blinds say dropping helps ~0.02, CV and walk-forward say the opposite; kept on the larger tests&rsquo; evidence</td></tr>
+        <tr class="keep"><td>ln_tvl (ridge)</td><td class="num">&minus;0.0753</td><td class="num">+0.0568</td><td class="num">+0.0255</td><td class="num">+0.1368</td><td>KEEP &mdash; walk-forward worsens +0.14 without it; the two blinds disagree with each other</td></tr>
+        <tr class="keep"><td>grouped half (w 0.7&rarr;1.0)</td><td class="num">&minus;0.0387</td><td class="num">&minus;0.0625</td><td class="num">+0.0074</td><td class="num">+0.0218</td><td>KEEP blend 0.7 &mdash; the two blinds prefer grouped-only, but CV, walk-forward and the 30-split blind mean (1.2090 vs grouped 1.2335) prefer the blend</td></tr>
+        <tr class="keep"><td>ridge-LAD only (w 0.7&rarr;0.0)</td><td class="num">&minus;0.2717</td><td class="num">+0.1457</td><td class="num">+0.0619</td><td class="num">&minus;0.0508</td><td>KEEP blend &mdash; the two blinds totally disagree (1.05 vs 1.55): one 17-protocol split cannot decide; the blend wins on the 30-split mean and CV</td></tr>
+        <tr><td>blend 0.6</td><td class="num">&minus;0.0388</td><td class="num">+0.0208</td><td class="num">+0.0012</td><td class="num">&minus;0.0073</td><td>0.7 kept &mdash; plateau 0.6&ndash;0.75, no reason to move</td></tr>
+        <tr><td>blend 0.8</td><td class="num">+0.0375</td><td class="num">&minus;0.0208</td><td class="num">+0.0041</td><td class="num">+0.0073</td><td>0.7 kept &mdash; plateau</td></tr>
+      </tbody>
+    </table>
+    <p>Full model (0.7 grouped / 0.3 ridge-LAD): Blind A 1.3189, Blind B 1.4050, CV 1.3038, walk-forward 1.0505. Blind diagnostics: A median % error &minus;26.8%, within &plusmn;30% 18%; B median % error &minus;12.1%, within &plusmn;30% 18%.</p>
+    <div class="callout">
+      <b>Read honestly.</b> Two terms (log_age, chain flags) prove themselves in all four tests. The rest are kept on walk-forward / CV evidence, because the two n=17 blind tests disagree with each other by up to 0.42 (ridge-only: 1.05 vs 1.55) &mdash; one small split cannot decide, so decisions come from the larger tests (30-split blind mean 1.2090, CV 1.3038, walk-forward 1.0505). <b>No term was dropped</b>: all 8 features plus the grouped half plus blend 0.7 are kept, each with its reason written above. No claim of &ldquo;best&rdquo; is made without a number.
+    </div>
+
+    <h3>Uncertainty intervals — and how honest they are</h3>
+    <p>Every board row shows a P25&ndash;P75 interval; every detail view adds P10&ndash;P90. The multipliers come from the v5 model&rsquo;s leave-one-out residuals on the 128 comps (ratio of actual to predicted market cap): P10 &times;0.0696, P25 &times;0.2805, P50 &times;1.0478, P75 &times;3.6866, P90 &times;8.4375. The interval is the implied value times the multiplier, computed at render time.</p>
+    <div class="callout">
+      <b>Coverage, measured on the 29 walk-forward test protocols:</b> the P25&ndash;P75 interval covered 51.7% (15/29) &mdash; stated as a 50% interval, so it is slightly <i>more</i> honest than its label. The P10&ndash;P90 interval covered 72.4% (21/29) &mdash; stated as an 80% interval, so it is slightly <i>less</i> than its label. Both are stated as measured. Do not read these as &ldquo;90% accurate&rdquo;.
+    </div>
+    <p><b>infinifi</b> is the only protocol to list since the snapshot: the model implied about $8.3M for it, its real market cap was about $799k. A fresh launch can price at a small fraction of the typical mcap/TVL ratio (low float, thin early quote, down market). The model&rsquo;s median prediction is a centre, not a promise.</p>
+
+    <h3>Coverage — all 758 protocols accounted for</h3>
+    <p>144 pre-token protocols are not ranked, and not silently: they are bridge, liquid-staking, exchange, versioned or wrapped products of tokens that already trade. Ranking them as &ldquo;protocols awaiting a listing&rdquo; would be factually wrong (the cases v5 avoided: WBTC, USDT0, CCIP, FBTC as &ldquo;pre-token&rdquo;).</p>
+    <table class="data">
+      <thead><tr><th>Group</th><th class="num">Count</th><th>Definition</th></tr></thead>
+      <tbody id="coverage-body"></tbody>
+    </table>
+
+    <h3>The model</h3>
+    <p>Fit at runtime from the snapshot&rsquo;s own 128 comps (market cap &gt; 0). <b>1.</b> Global curve, OLS: ln(mcap) = 6.9646 + 0.5223&middot;ln(TVL). <b>2.</b> Pooled groups (Bridge, Staking, Yield, Lending, Dexs, everything else its own group; 26 groups): each group&rsquo;s offset is its shrunk median curve-residual, w = n/(n+5); an unseen group falls back to the global median residual. <b>3.</b> Ridge-LAD median regression (IRLS + ridge, &lambda;=10, 40 rounds) on [1, ln(TVL), group one-hot, growth, log age, ln(chain count), 8 chain flags], continuous features standardised. <b>4.</b> Final: ln(mcap) = 0.7&middot;grouped + 0.3&middot;ridge-LAD, exponentiated. The board separates protocols whose token already trades (128 comps, shown as live context) from the 198 still to come.</p>
+    <p>Farm plans are chain-specific: typical gas is about $8 on Ethereum, $0.01 on Solana, $0.50 on Base / Arbitrum / Optimism, $0.30 on BNB / Avalanche, $0.10 on Polygon, about $2 elsewhere. Each plan names amounts, costs and durations.</p>
+  </section>
+
+  <footer>
+    Data: DefiLlama public API, snapshot 2026-11-14 (758 protocols). A protocol is described as recording no token, never as having none. Implied value is this entry&rsquo;s own claim. Nothing on this page fetches the network.
+  </footer>
+</div>
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
